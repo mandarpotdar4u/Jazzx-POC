@@ -1,3 +1,77 @@
+on: [push]
+
+jobs:
+  jmeter_job:
+    runs-on: ubuntu-latest
+    name: JMeter Test Execution
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install latest Apache JMeter
+        run: |
+          JMETER_VERSION=5.6.3
+          wget https://downloads.apache.org//jmeter/binaries/apache-jmeter-$JMETER_VERSION.tgz
+          tar -xzf apache-jmeter-$JMETER_VERSION.tgz
+          sudo mv apache-jmeter-$JMETER_VERSION /opt/jmeter
+          echo "export PATH=$PATH:/opt/jmeter/bin" >> $GITHUB_ENV
+
+      - name: Create reports directory
+        run: mkdir -p reports/html
+
+      - name: Run JMeter Tests
+        run: |
+          /opt/jmeter/bin/jmeter -n -t AssistantApi.jmx -l result.jtl -e -o ./reports/html/
+
+      - name: List Report Output
+        run: |
+          echo "Listing reports/html directory"
+          ls -R reports/html || echo "⚠️ reports/html not found"
+
+      - name: Check if HTML Report was Generated
+        run: |
+          if [ ! -f reports/html/index.html ]; then
+            echo "❌ HTML report was not generated!"
+            exit 1
+          else
+            echo "✅ HTML report found."
+          fi
+
+      - name: Upload Result File
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-results
+          path: result.jtl
+          if-no-files-found: error
+
+      - name: Upload HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-reports
+          path: reports/html
+          if-no-files-found: error
+
+  deploy-gh-pages:
+    needs: jmeter_job
+    runs-on: ubuntu-latest
+    name: Deploy JMeter HTML Report to GitHub Pages
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Download HTML Report Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jmeter-reports
+          path: site
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          publish_branch: gh-pages
+
   email-report:
     needs: deploy-gh-pages
     runs-on: ubuntu-latest
@@ -6,7 +80,7 @@
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Download Result and Report
+      - name: Download Result File
         uses: actions/download-artifact@v4
         with:
           name: jmeter-results
@@ -18,20 +92,19 @@
           name: jmeter-reports
           path: artifacts/reports
 
-      - name: Install Python and send email
+      - name: Install Python and Send Email
         run: |
           sudo apt update
           sudo apt install -y python3 python3-pip
-          pip3 install secure-smtplib
+          pip3 install secure-smtplib || true  # ignore error if already installed
 
           python3 - <<EOF
           import smtplib
           from email.message import EmailMessage
-          import os
 
           sender = "${{ secrets.MAIL_USERNAME }}"
           password = "${{ secrets.MAIL_PASSWORD }}"
-          receiver = "recipient@example.com"
+          receiver = "receiver@example.com"
 
           msg = EmailMessage()
           msg['Subject'] = "✅ JMeter Test Report"
