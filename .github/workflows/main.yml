@@ -76,6 +76,10 @@ jobs:
     needs: deploy-gh-pages
     runs-on: ubuntu-latest
     name: Email JMeter Report
+    env:
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -96,15 +100,15 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y python3 python3-pip
-          pip3 install secure-smtplib || true  # ignore error if already installed
+          pip3 install secure-smtplib || true
 
           python3 - <<EOF
           import smtplib
           from email.message import EmailMessage
 
-          sender = "${{ secrets.MAIL_USERNAME }}"
-          password = "${{ secrets.MAIL_PASSWORD }}"
-          receiver = "receiver@example.com"
+          sender = "${EMAIL_FROM}"
+          password = "${SMTP_APP_PASSWORD}"
+          receiver = "${EMAIL_TO}"
 
           msg = EmailMessage()
           msg['Subject'] = "✅ JMeter Test Report"
