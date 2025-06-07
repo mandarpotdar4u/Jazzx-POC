@@ -14,14 +14,14 @@ jobs:
           wget https://downloads.apache.org//jmeter/binaries/apache-jmeter-$JMETER_VERSION.tgz
           tar -xzf apache-jmeter-$JMETER_VERSION.tgz
           sudo mv apache-jmeter-$JMETER_VERSION /opt/jmeter
-          echo "export PATH=$PATH:/opt/jmeter/bin" >> $GITHUB_ENV
+          echo "/opt/jmeter/bin" >> $GITHUB_PATH
 
       - name: Create reports directory
         run: mkdir -p reports/html
 
       - name: Run JMeter Tests
         run: |
-          /opt/jmeter/bin/jmeter -n -t ./AssistantApi.jmx -l result.jtl -e -o ./reports/html/
+          jmeter -n -t ./AssistantApi.jmx -l result.jtl -e -o ./reports/html/
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
@@ -36,3 +36,23 @@ jobs:
           name: jmeter-reports
           path: reports
           if-no-files-found: error
+
+  deploy-gh-pages:
+    needs: jmeter_job
+    runs-on: ubuntu-latest
+    name: Deploy JMeter HTML Report to GitHub Pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download JMeter HTML Report Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jmeter-reports
+          path: site
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site/reports/html
