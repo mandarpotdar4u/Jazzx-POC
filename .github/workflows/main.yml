@@ -18,18 +18,26 @@ jobs:
           sudo mv apache-jmeter-$JMETER_VERSION /opt/jmeter
           echo "/opt/jmeter/bin" >> $GITHUB_PATH
 
+      - name: Confirm JMeter Installed
+        run: jmeter -v
+
       - name: Create Reports Directory
         run: mkdir -p reports/html
 
       - name: Run JMeter Test Plan
         run: |
-          jmeter -n -t ./AssistantApi.jmx -l result.jtl -e -o ./reports/html/
+          echo "Running JMeter test plan..."
+          ls -al
+          if [ ! -f AssistantApi.jmx ]; then
+            echo "❌ AssistantApi.jmx not found in root directory!"
+            exit 1
+          fi
+          jmeter -n -t ./AssistantApi.jmx -l result.jtl -e -o reports/html
 
-      - name: List All Files (Debugging)
+      - name: List Report Output
         run: |
-          echo "Current Directory: $(pwd)"
-          echo "Files:"
-          ls -R
+          echo "Listing reports/html directory"
+          ls -R reports/html || echo "⚠️ reports/html not found"
 
       - name: Check if HTML Report was Generated
         run: |
