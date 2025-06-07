@@ -8,17 +8,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up JMeter
+      - name: Install latest Apache JMeter
         run: |
-          sudo apt update
-          sudo apt install -y jmeter
+          JMETER_VERSION=5.6.3
+          wget https://downloads.apache.org//jmeter/binaries/apache-jmeter-$JMETER_VERSION.tgz
+          tar -xzf apache-jmeter-$JMETER_VERSION.tgz
+          sudo mv apache-jmeter-$JMETER_VERSION /opt/jmeter
+          echo "export PATH=$PATH:/opt/jmeter/bin" >> $GITHUB_ENV
 
       - name: Create reports directory
-        run: mkdir reports
+        run: mkdir -p reports/html
 
       - name: Run JMeter Tests
         run: |
-          jmeter -n -t ./AssistantApi.jmx -l result.jtl -e -o ./reports/html/
+          /opt/jmeter/bin/jmeter -n -t ./AssistantApi.jmx -l result.jtl -e -o ./reports/html/
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
