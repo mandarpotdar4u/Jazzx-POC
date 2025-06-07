@@ -21,7 +21,7 @@ jobs:
 
       - name: Run JMeter Tests
         run: |
-          /opt/jmeter/bin/jmeter -n -t ./AssistantApi.jmx -l result.jtl -e -o ./reports/html/
+          /opt/jmeter/bin/jmeter -n -t AssistantApi.jmx -l result.jtl -e -o ./reports/html/
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
