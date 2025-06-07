@@ -23,16 +23,50 @@ jobs:
         run: |
           /opt/jmeter/bin/jmeter -n -t AssistantApi.jmx -l result.jtl -e -o ./reports/html/
 
-      - name: Upload Results
+      - name: List Report Output
+        run: |
+          echo "Listing reports/html directory"
+          ls -R reports/html || echo "⚠️ reports/html not found"
+
+      - name: Check if HTML Report was Generated
+        run: |
+          if [ ! -f reports/html/index.html ]; then
+            echo "❌ HTML report was not generated!"
+            exit 1
+          else
+            echo "✅ HTML report found."
+          fi
+
+      - name: Upload Result File
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-results
           path: result.jtl
           if-no-files-found: error
 
-      - name: Upload HTML Reports
+      - name: Upload HTML Report
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-reports
-          path: reports
+          path: reports/html
           if-no-files-found: error
+
+  deploy-gh-pages:
+    needs: jmeter_job
+    runs-on: ubuntu-latest
+    name: Deploy JMeter HTML Report to GitHub Pages
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Download HTML Report Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jmeter-reports
+          path: site
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
