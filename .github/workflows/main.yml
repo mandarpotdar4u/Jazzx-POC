@@ -1,83 +1,38 @@
-name: Run JMeter Tests and Deploy Report
-
 on: [push]
 
 jobs:
   jmeter_job:
     runs-on: ubuntu-latest
     name: JMeter Test Execution
-    steps:
-      - name: Checkout Repository
+    steps:      
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install Apache JMeter
+      - name: Install latest Apache JMeter
         run: |
           JMETER_VERSION=5.6.3
-          wget https://downloads.apache.org/jmeter/binaries/apache-jmeter-$JMETER_VERSION.tgz
+          wget https://downloads.apache.org//jmeter/binaries/apache-jmeter-$JMETER_VERSION.tgz
           tar -xzf apache-jmeter-$JMETER_VERSION.tgz
           sudo mv apache-jmeter-$JMETER_VERSION /opt/jmeter
-          echo "/opt/jmeter/bin" >> $GITHUB_PATH
+          echo "export PATH=$PATH:/opt/jmeter/bin" >> $GITHUB_ENV
 
-      - name: Confirm JMeter Installed
-        run: jmeter -v
-
-      - name: Create Reports Directory
+      - name: Create reports directory
         run: mkdir -p reports/html
 
-      - name: Run JMeter Test Plan
+      - name: Run JMeter Tests
         run: |
-          echo "Running JMeter test plan..."
-          ls -al
-          if [ ! -f AssistantApi.jmx ]; then
-            echo "❌ AssistantApi.jmx not found in root directory!"
-            exit 1
-          fi
           /opt/jmeter/bin/jmeter -n -t ./AssistantApi.jmx -l result.jtl -e -o ./reports/html/
-          
-      - name: List Report Output
-        run: |
-          echo "Listing reports/html directory"
-          ls -R reports/html || echo "⚠️ reports/html not found"
 
-      - name: Check if HTML Report was Generated
-        run: |
-          if [ ! -f reports/html/index.html ]; then
-            echo "❌ HTML report was not generated!"
-            exit 1
-          else
-            echo "✅ HTML report found."
-          fi
-
-      - name: Upload Result File
+      - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-results
           path: result.jtl
           if-no-files-found: error
 
-      - name: Upload HTML Report
+      - name: Upload HTML Reports
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-reports
-          path: reports/html
+          path: reports
           if-no-files-found: error
-
-  deploy-gh-pages:
-    needs: jmeter_job
-    runs-on: ubuntu-latest
-    name: Deploy JMeter HTML Report to GitHub Pages
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Download HTML Report Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: jmeter-reports
-          path: site
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
