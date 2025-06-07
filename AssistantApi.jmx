@@ -96,7 +96,7 @@
         <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Authorise User.csv">
           <stringProp name="delimiter">,</stringProp>
           <stringProp name="fileEncoding">UTF-8</stringProp>
-          <stringProp name="filename">D:/Project/JazzX/Performance/JazzX_Project/Performance/Assistant/AuthoriseUser.csv</stringProp>
+          <stringProp name="filename">AuthoriseUser.csv</stringProp>
           <boolProp name="ignoreFirstLine">true</boolProp>
           <boolProp name="quotedData">false</boolProp>
           <boolProp name="recycle">true</boolProp>
