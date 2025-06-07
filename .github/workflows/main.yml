@@ -4,7 +4,7 @@ jobs:
   jmeter_job:
     runs-on: ubuntu-latest
     name: JMeter Test Execution
-    steps:      
+    steps:
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -34,7 +34,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-reports
-          path: reports
+          path: reports/html    # ✅ Upload only the `html` folder
           if-no-files-found: error
 
   deploy-gh-pages:
@@ -49,10 +49,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: jmeter-reports
-          path: site
+          path: site             # ✅ This will now contain `site/index.html`
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site/reports/html
+          publish_dir: ./site    # ✅ Direct path to HTML report
