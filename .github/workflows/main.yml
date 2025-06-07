@@ -36,4 +36,3 @@ jobs:
           name: jmeter-reports
           path: reports
           if-no-files-found: error
-          
