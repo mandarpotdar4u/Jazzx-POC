@@ -32,7 +32,7 @@ jobs:
             echo "❌ AssistantApi.jmx not found in root directory!"
             exit 1
           fi
-          jmeter -n -t ./AssistantApi.jmx -l result.jtl -e -o reports/html
+          jmeter -n -t AssistantApi.jmx -l result.jtl -e -o reports/html
 
       - name: List Report Output
         run: |
