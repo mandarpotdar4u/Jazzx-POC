@@ -1,3 +1,5 @@
+name: Run JMeter Tests and Deploy Report
+
 on: [push]
 
 jobs:
@@ -5,36 +7,51 @@ jobs:
     runs-on: ubuntu-latest
     name: JMeter Test Execution
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Install latest Apache JMeter
+      - name: Install Apache JMeter
         run: |
           JMETER_VERSION=5.6.3
-          wget https://downloads.apache.org//jmeter/binaries/apache-jmeter-$JMETER_VERSION.tgz
+          wget https://downloads.apache.org/jmeter/binaries/apache-jmeter-$JMETER_VERSION.tgz
           tar -xzf apache-jmeter-$JMETER_VERSION.tgz
           sudo mv apache-jmeter-$JMETER_VERSION /opt/jmeter
           echo "/opt/jmeter/bin" >> $GITHUB_PATH
 
-      - name: Create reports directory
+      - name: Create Reports Directory
         run: mkdir -p reports/html
 
-      - name: Run JMeter Tests
+      - name: Run JMeter Test Plan
         run: |
           jmeter -n -t ./AssistantApi.jmx -l result.jtl -e -o ./reports/html/
 
-      - name: Upload Results
+      - name: List All Files (Debugging)
+        run: |
+          echo "Current Directory: $(pwd)"
+          echo "Files:"
+          ls -R
+
+      - name: Check if HTML Report was Generated
+        run: |
+          if [ ! -f reports/html/index.html ]; then
+            echo "❌ HTML report was not generated!"
+            exit 1
+          else
+            echo "✅ HTML report found."
+          fi
+
+      - name: Upload Result File
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-results
           path: result.jtl
           if-no-files-found: error
 
-      - name: Upload HTML Reports
+      - name: Upload HTML Report
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-reports
-          path: reports/html    # ✅ Upload only the `html` folder
+          path: reports/html
           if-no-files-found: error
 
   deploy-gh-pages:
@@ -42,17 +59,17 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy JMeter HTML Report to GitHub Pages
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Download JMeter HTML Report Artifact
+      - name: Download HTML Report Artifact
         uses: actions/download-artifact@v4
         with:
           name: jmeter-reports
-          path: site             # ✅ This will now contain `site/index.html`
+          path: site
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site    # ✅ Direct path to HTML report
+          publish_dir: ./site
