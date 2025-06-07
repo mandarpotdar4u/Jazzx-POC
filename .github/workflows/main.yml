@@ -1,0 +1,31 @@
+on: [push]
+jobs:
+  jmeter_job:
+    runs-on: ubuntu-latest
+    name: JMeter Test Execution
+    steps:      
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Assistant
+      run: mkdir reports
+      
+    - name: Run JMeter Tests
+      uses: ./
+      with:
+        test-plan-path: './AssistantApi.jmx'
+        args: "-e -o ./reports/html/"
+        
+    - name: Upload Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: jmeter-results
+        path: result.jtl
+        if-no-files-found: error
+
+    - name: Upload HTML Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: jmeter-reports
+        path: reports
+        if-no-files-found: error
