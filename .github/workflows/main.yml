@@ -51,29 +51,8 @@ jobs:
           path: reports/html
           if-no-files-found: error
 
-  deploy-gh-pages:
-    needs: jmeter_job
-    runs-on: ubuntu-latest
-    name: Deploy JMeter HTML Report to GitHub Pages
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Download HTML Report Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: jmeter-reports
-          path: site
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-          publish_branch: gh-pages
-
   email-report:
-    needs: deploy-gh-pages
+    needs: jmeter_job
     runs-on: ubuntu-latest
     name: Email JMeter Report
     env:
