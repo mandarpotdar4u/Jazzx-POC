@@ -118,3 +118,4 @@ jobs:
           response = sg.send(message)
           print(f"Email sent: {response.status_code}")
           EOF
+          
