@@ -23,11 +23,6 @@ jobs:
         run: |
           /opt/jmeter/bin/jmeter -n -t AssistantApi.jmx -l result.jtl -e -o ./reports/html/
 
-      - name: List Report Output
-        run: |
-          echo "Listing reports/html directory"
-          ls -R reports/html || echo "⚠️ reports/html not found"
-
       - name: Check if HTML Report was Generated
         run: |
           if [ ! -f reports/html/index.html ]; then
@@ -54,11 +49,11 @@ jobs:
   email-report:
     needs: jmeter_job
     runs-on: ubuntu-latest
-    name: Email JMeter Report
+    name: Email JMeter Report via SendGrid
     env:
+      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
       EMAIL_TO: ${{ secrets.EMAIL_TO }}
-      SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -75,35 +70,51 @@ jobs:
           name: jmeter-reports
           path: artifacts/reports
 
-      - name: Install Python and Send Email
+      - name: Install SendGrid Python SDK and Send Email
         run: |
-          sudo apt update
-          sudo apt install -y python3 python3-pip
-          pip3 install secure-smtplib || true
+          pip3 install sendgrid
 
           python3 - <<EOF
-          import smtplib
-          from email.message import EmailMessage
+          import os
+          from sendgrid import SendGridAPIClient
+          from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
+          import base64
 
-          sender = "${EMAIL_FROM}"
-          password = "${SMTP_APP_PASSWORD}"
-          receiver = "${EMAIL_TO}"
+          sg = SendGridAPIClient(api_key=os.getenv("SENDGRID_API_KEY"))
+          from_email = os.getenv("EMAIL_FROM")
+          to_email = os.getenv("EMAIL_TO")
 
-          msg = EmailMessage()
-          msg['Subject'] = "✅ JMeter Test Report"
-          msg['From'] = sender
-          msg['To'] = receiver
-          msg.set_content("Hi,\n\nPlease find the attached JMeter test result and HTML report.\n\nRegards,\nGitHub Actions")
+          message = Mail(
+              from_email=from_email,
+              to_emails=to_email,
+              subject="✅ JMeter Test Report",
+              plain_text_content="Hi,\n\nPlease find the attached JMeter test result and HTML report.\n\nRegards,\nGitHub Actions"
+          )
 
           # Attach result.jtl
           with open("artifacts/result.jtl", "rb") as f:
-              msg.add_attachment(f.read(), maintype="application", subtype="octet-stream", filename="result.jtl")
+              data = f.read()
+              encoded = base64.b64encode(data).decode()
+              attachment = Attachment(
+                  FileContent(encoded),
+                  FileName("result.jtl"),
+                  FileType("application/octet-stream"),
+                  Disposition("attachment")
+              )
+              message.add_attachment(attachment)
 
           # Attach index.html
           with open("artifacts/reports/index.html", "rb") as f:
-              msg.add_attachment(f.read(), maintype="text", subtype="html", filename="index.html")
+              data = f.read()
+              encoded = base64.b64encode(data).decode()
+              attachment2 = Attachment(
+                  FileContent(encoded),
+                  FileName("index.html"),
+                  FileType("text/html"),
+                  Disposition("attachment")
+              )
+              message.add_attachment(attachment2)
 
-          with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-              smtp.login(sender, password)
-              smtp.send_message(msg)
+          response = sg.send(message)
+          print(f"Email sent: {response.status_code}")
           EOF
